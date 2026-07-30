@@ -6,27 +6,30 @@
 <title>フォトウェディング見積もりシミュレーター</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
    0. デザイントークン（色・書体・余白）
+   2026.7.30：参考画像に合わせて全面刷新
+   （白背景＋ローズレッドのアクセント＋太字サンセリフ／
+   エレガント寄りだった配色・書体をシンプルな方向に変更）
    ここを変えるだけで全体の雰囲気を変えられます
 ============================================================ */
 :root{
-  --bg:#FAF6F1;
+  --bg:#F6F5F8;
   --surface:#FFFFFF;
-  --surface-muted:#F4ECE5;
-  --ink:#35262A;
-  --ink-soft:#8B787D;
-  --line:#E7DAD2;
-  --accent:#B3707B;      /* ダスティローズ：選択・強調 */
-  --accent-deep:#8C4F5A;
-  --gold:#AD8A4E;        /* 金：価格・特別感 */
-  --gold-soft:#EFE2C6;
+  --surface-muted:#FAF9FB;
+  --ink:#1E1B1F;
+  --ink-soft:#79737C;
+  --line:#E5E1E8;
+  --accent:#CC3F5C;       /* ローズレッド：価格・選択状態・強調 */
+  --accent-dark:#A93049;
+  --accent-soft:#FBEAEE;  /* 選択時などの淡い背景 */
   --radius:14px;
-  --shadow:0 8px 24px rgba(53,38,42,.08);
-  --font-display:'Shippori Mincho', serif;
+  --radius-sm:10px;
+  --shadow:0 6px 20px rgba(20,16,20,.06);
   --font-body:'Noto Sans JP', sans-serif;
+  --font-price:'Shippori Mincho', serif; /* 金額の数字だけに使う明朝体 */
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;}
@@ -34,88 +37,55 @@ body{
   background:var(--bg);
   color:var(--ink);
   font-family:var(--font-body);
-  line-height:1.7;
+  line-height:1.6;
   -webkit-font-smoothing:antialiased;
 }
+.visually-hidden{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
 .app{
-  max-width:520px;
+  max-width:480px;
   margin:0 auto;
-  padding:28px 18px 56px;
+  padding:24px 16px 56px;
 }
 .app__header{
   text-align:center;
-  margin-bottom:28px;
+  margin-bottom:22px;
 }
 .app__eyebrow{
-  font-size:12px;
-  letter-spacing:.2em;
-  color:var(--accent-deep);
-  margin:0 0 6px;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.25em;
+  color:var(--accent);
+  margin:0 0 8px;
 }
 .app__title{
-  font-family:var(--font-display);
   font-size:22px;
-  font-weight:600;
-  margin:0 0 8px;
-  letter-spacing:.04em;
+  font-weight:900;
+  margin:0 0 6px;
+  letter-spacing:.02em;
 }
 .app__lead{
-  font-size:13px;
+  font-size:12.5px;
   color:var(--ink-soft);
   margin:0;
 }
 
-/* ---- ステップインジケーター ---- */
+/* ---- ステップインジケーター（4分割のバー） ---- */
 .steps{
   display:flex;
+  gap:6px;
   list-style:none;
   padding:0;
-  margin:0 0 28px;
-  counter-reset:step;
+  margin:0 0 22px;
 }
 .steps li{
   flex:1;
-  text-align:center;
-  position:relative;
-  font-size:11px;
-  color:var(--ink-soft);
-}
-.steps li::before{
-  content:attr(data-kanji);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:30px;height:30px;
-  margin:0 auto 6px;
-  border-radius:50%;
-  border:1px solid var(--line);
-  background:var(--surface);
-  font-family:var(--font-display);
-  font-size:14px;
-  color:var(--ink-soft);
-  transition:all .25s ease;
-}
-.steps li::after{
-  content:"";
-  position:absolute;
-  top:15px;left:calc(50% + 20px);
-  width:calc(100% - 40px);
-  height:1px;
+  height:6px;
+  border-radius:999px;
   background:var(--line);
+  transition:background .2s ease;
 }
-.steps li:last-child::after{display:none;}
 .steps li.is-active,
-.steps li.is-done{color:var(--ink);}
-.steps li.is-active::before{
-  border-color:var(--accent);
-  color:var(--accent);
-  box-shadow:0 0 0 3px var(--gold-soft);
-}
-.steps li.is-done::before{
-  border-color:var(--gold);
-  background:var(--gold);
-  color:#fff;
-}
+.steps li.is-done{background:var(--accent);}
 
 /* ---- パネル共通 ---- */
 .panel{
@@ -123,62 +93,112 @@ body{
   border:1px solid var(--line);
   border-radius:var(--radius);
   box-shadow:var(--shadow);
-  padding:22px 18px;
+  padding:20px 16px;
 }
 .panel[hidden]{display:none;}
 .panel__title{
-  font-family:var(--font-display);
-  font-size:17px;
-  font-weight:600;
+  font-size:16px;
+  font-weight:900;
   margin:0 0 4px;
 }
 .panel__note{
-  font-size:12.5px;
+  font-size:12px;
   color:var(--ink-soft);
-  margin:0 0 18px;
+  margin:0 0 16px;
 }
 
-/* ---- エリア／ロケ地 ---- */
-.area-block{margin-bottom:18px;}
-.area-block__title{
-  font-size:12px;
-  letter-spacing:.08em;
-  color:var(--accent-deep);
-  border-bottom:1px solid var(--line);
-  padding-bottom:6px;
-  margin:0 0 10px;
+/* ---- エリア（アコーディオン）／ロケ地 ---- */
+.area{
+  border:1px solid var(--line);
+  border-radius:var(--radius-sm);
+  margin-bottom:10px;
+  overflow:hidden;
 }
-.tile-grid{
-  display:grid;
-  grid-template-columns:repeat(2,1fr);
-  gap:8px;
-}
-.tile{
-  display:block;
+.area__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   width:100%;
+  padding:14px;
+  background:var(--surface);
+  border:0;
   text-align:left;
-  padding:10px 12px;
-  background:var(--surface-muted);
-  border:1px solid transparent;
-  border-radius:10px;
+  font-size:14px;
+  font-weight:700;
+  color:var(--ink);
+  cursor:pointer;
   font-family:var(--font-body);
-  font-size:13px;
+}
+.area__store{
+  display:block;
+  font-size:11px;
+  font-weight:400;
+  color:var(--ink-soft);
+  margin-top:2px;
+}
+.area__header-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.area__header-selected{
+  font-size:12.5px;
+  font-weight:700;
+  color:var(--accent);
+  max-width:120px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.area__arrow{
+  color:var(--ink-soft);
+  transition:transform .2s ease;
+  flex-shrink:0;
+}
+.area.is-open .area__arrow{transform:rotate(180deg);}
+.area__body{display:none;padding:0 10px 10px;}
+.area.is-open .area__body{display:block;}
+
+.loc-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  width:100%;
+  padding:12px;
+  margin-top:6px;
+  background:var(--surface-muted);
+  border:1.5px solid transparent;
+  border-radius:var(--radius-sm);
+  text-align:left;
+  font-family:var(--font-body);
+  font-size:13.5px;
   color:var(--ink);
   cursor:pointer;
   transition:.15s ease;
 }
-.tile:hover{border-color:var(--accent);}
-.tile:focus-visible{outline:2px solid var(--accent-deep);outline-offset:2px;}
-.tile.is-selected{
-  background:var(--accent);
-  color:#fff;
+.loc-row:hover{border-color:var(--accent);}
+.loc-row:focus-visible{outline:2px solid var(--accent-dark);outline-offset:2px;}
+.loc-row.is-selected{
   border-color:var(--accent);
+  background:var(--accent-soft);
 }
-.tile__badge{
-  display:block;
-  font-size:10px;
-  opacity:.75;
-  margin-top:2px;
+.loc-row__badge{
+  font-size:11px;
+  font-weight:700;
+  color:var(--accent);
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+/* ---- ここまでの合計（進行中の目安金額） ---- */
+.subtotal{
+  text-align:center;
+  font-size:12.5px;
+  color:var(--ink-soft);
+  margin:16px 0 4px;
+}
+.subtotal strong{
+  font-size:17px;
+  font-weight:900;
+  color:var(--ink);
+  margin-left:4px;
 }
 
 /* ---- プランカード ---- */
@@ -186,58 +206,63 @@ body{
   display:flex;
   justify-content:space-between;
   align-items:center;
+  gap:10px;
   width:100%;
-  padding:16px;
+  padding:15px 14px;
   margin-bottom:10px;
-  background:var(--surface-muted);
-  border:1px solid transparent;
-  border-radius:12px;
+  background:var(--surface);
+  border:1.5px solid var(--line);
+  border-radius:var(--radius-sm);
   cursor:pointer;
   text-align:left;
   transition:.15s ease;
+  font-family:var(--font-body);
 }
 .plan-card:hover{border-color:var(--accent);}
 .plan-card.is-selected{
-  background:#fff;
-  border-color:var(--gold);
-  box-shadow:0 0 0 3px var(--gold-soft);
+  border-color:var(--accent);
+  background:var(--accent-soft);
 }
 .plan-card__name{
-  font-family:var(--font-display);
-  font-size:15px;
-  font-weight:600;
-  margin:0 0 4px;
+  font-size:14.5px;
+  font-weight:700;
 }
-.plan-card__desc{font-size:12px;color:var(--ink-soft);}
-.plan-card__price{
-  font-family:var(--font-display);
-  font-size:16px;
-  color:var(--accent-deep);
-  white-space:nowrap;
+.plan-card__badge{
+  display:inline-block;
+  margin-left:6px;
+  padding:2px 8px;
+  border-radius:999px;
+  background:var(--accent);
+  color:#fff;
+  font-size:10px;
+  font-weight:700;
+  vertical-align:middle;
 }
+.plan-card__desc{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+.plan-card__price{text-align:right;white-space:nowrap;}
+.plan-card__price-original{display:block;font-size:11px;color:var(--ink-soft);text-decoration:line-through;}
+.plan-card__price-final{font-size:16.5px;font-weight:900;color:var(--accent);}
 
 /* ---- 日付選択 ---- */
-.date-field{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  margin-bottom:14px;
-}
+.date-field{margin-bottom:4px;}
 .date-field input[type="date"]{
-  padding:12px;
+  width:100%;
+  padding:13px;
   font-size:15px;
   font-family:var(--font-body);
-  border:1px solid var(--line);
-  border-radius:10px;
-  background:var(--surface-muted);
+  border:1.5px solid var(--line);
+  border-radius:var(--radius-sm);
+  background:var(--surface);
   color:var(--ink);
 }
 .date-hint{
+  margin-top:10px;
   font-size:12.5px;
-  padding:10px 12px;
-  border-radius:10px;
-  background:var(--gold-soft);
-  color:var(--accent-deep);
+  font-weight:700;
+  padding:12px;
+  border-radius:var(--radius-sm);
+  background:var(--accent-soft);
+  color:var(--accent-dark);
 }
 .date-hint[hidden]{display:none;}
 
@@ -245,14 +270,13 @@ body{
 .btn{
   display:inline-block;
   width:100%;
-  padding:13px;
+  padding:14px;
   font-family:var(--font-body);
-  font-size:14px;
-  font-weight:500;
-  letter-spacing:.03em;
+  font-size:14.5px;
+  font-weight:700;
   text-align:center;
   border-radius:999px;
-  border:1px solid var(--ink);
+  border:1.5px solid var(--ink);
   background:transparent;
   color:var(--ink);
   cursor:pointer;
@@ -261,60 +285,88 @@ body{
 .btn:disabled{opacity:.35;cursor:not-allowed;}
 .btn:not(:disabled):hover{background:var(--ink);color:#fff;}
 .btn--primary{
-  background:var(--accent-deep);
-  border-color:var(--accent-deep);
+  background:var(--ink);
+  border-color:var(--ink);
   color:#fff;
 }
-.btn--primary:not(:disabled):hover{background:var(--ink);}
 .btn--line{
   background:#06C755;
   border-color:#06C755;
   color:#fff;
+  font-weight:900;
 }
 .btn--line:hover{background:#05a848;}
 .btn--ghost{border-color:var(--line);color:var(--ink-soft);}
-.btn-row{display:flex;gap:10px;margin-top:18px;}
+.btn-row{display:flex;gap:10px;margin-top:16px;}
 .btn-row .btn{flex:1;}
 
 /* ---- 結果画面 ---- */
 .summary{
   border:1px solid var(--line);
-  border-radius:12px;
-  padding:14px 16px;
-  margin-bottom:16px;
+  border-radius:var(--radius-sm);
+  padding:2px 16px;
+  margin-bottom:18px;
 }
-.summary dt{font-size:11px;color:var(--ink-soft);margin-top:8px;}
-.summary dt:first-child{margin-top:0;}
-.summary dd{margin:2px 0 0;font-size:14px;}
+.summary-row{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  padding:11px 0;
+  font-size:13px;
+}
+.summary-row + .summary-row{border-top:1px dashed var(--line);}
+.summary-row__label{color:var(--ink-soft);flex-shrink:0;}
+.summary-row__value{font-weight:700;text-align:right;}
 
 .price-box{
   text-align:center;
-  padding:22px 10px;
-  margin-bottom:16px;
-  border-radius:12px;
-  background:linear-gradient(180deg,#fff, var(--gold-soft));
+  padding:22px 14px 18px;
+  margin-bottom:18px;
+  border-radius:var(--radius-sm);
+  background:var(--surface-muted);
+  border:1px solid var(--line);
 }
-.price-box__label{font-size:11px;color:var(--ink-soft);text-decoration:line-through;}
-.price-box__original{font-size:14px;color:var(--ink-soft);text-decoration:line-through;margin:2px 0 10px;}
-.price-box__final-label{
-  font-size:11px;
-  letter-spacing:.1em;
-  color:var(--accent-deep);
+.price-box__row{font-size:13px;color:var(--ink-soft);}
+.price-box__row del{margin-left:4px;}
+.price-box__badge{
+  display:inline-block;
+  margin:12px 0 14px;
+  padding:6px 16px;
+  border-radius:999px;
+  background:var(--accent);
+  color:#fff;
+  font-family:var(--font-price);
+  font-size:14px;
+  font-weight:700;
 }
 .price-box__final{
-  font-family:var(--font-display);
-  font-size:34px;
+  font-family:var(--font-price);
+  font-size:36px;
   font-weight:700;
-  color:var(--ink);
-  margin:4px 0 2px;
+  color:var(--accent);
+  margin:0;
+  line-height:1.2;
+  letter-spacing:.02em;
 }
-.price-box__final small{font-size:14px;font-weight:400;}
-.price-box__tax{font-size:11px;color:var(--ink-soft);}
+.price-box__final small{font-family:var(--font-price);font-size:17px;font-weight:700;color:var(--accent);}
+.price-box__taxline{font-family:var(--font-price);font-size:22px;font-weight:700;color:var(--accent);margin:8px 0 14px;line-height:1.2;}
+.price-box__tax{font-size:10.5px;color:var(--ink-soft);margin:10px 0 0;}
+
+.savings-box{
+  border:1.5px dashed var(--accent);
+  border-radius:var(--radius-sm);
+  padding:14px 16px;
+  text-align:center;
+  font-size:12.5px;
+  color:var(--accent-dark);
+  margin-bottom:18px;
+}
+.savings-box strong{font-size:15px;}
 
 .reset-link{
   display:block;
   text-align:center;
-  margin-top:14px;
+  margin-top:16px;
   font-size:12px;
   color:var(--ink-soft);
   text-decoration:underline;
@@ -322,7 +374,7 @@ body{
 }
 
 @media (prefers-reduced-motion: no-preference){
-  .panel{animation:fadeIn .25s ease;}
+  .panel{animation:fadeIn .2s ease;}
   @keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
 }
 </style>
@@ -332,23 +384,24 @@ body{
 
   <header class="app__header">
     <p class="app__eyebrow">PHOTO WEDDING SIMULATOR</p>
-    <h1 class="app__title">フォトウェディング<br>見積もりシミュレーター</h1>
+    <h1 class="app__title">フォトウェディング見積もりシミュレーター</h1>
     <p class="app__lead">ロケ地・プラン・撮影日を選ぶだけで、その場で概算料金が分かります</p>
   </header>
 
   <ol class="steps" id="stepIndicator">
-    <li data-step="1" data-kanji="一">ロケ地</li>
-    <li data-step="2" data-kanji="二">プラン</li>
-    <li data-step="3" data-kanji="三">撮影日</li>
-    <li data-step="4" data-kanji="四">見積り</li>
+    <li data-step="1"><span class="visually-hidden">ロケ地</span></li>
+    <li data-step="2"><span class="visually-hidden">プラン</span></li>
+    <li data-step="3"><span class="visually-hidden">撮影日</span></li>
+    <li data-step="4"><span class="visually-hidden">見積り</span></li>
   </ol>
 
   <main>
     <!-- STEP 1: ロケ地 -->
     <section class="panel" id="panel-1">
       <h2 class="panel__title">撮影したいロケ地を選んでください</h2>
-      <p class="panel__note">エリアごとに表示しています。タップすると自動で次に進みます。</p>
+      <p class="panel__note">エリアを開いて選択してください。タップすると自動で次に進みます。</p>
       <div id="locationList"></div>
+      <p class="subtotal" id="subtotal-1"></p>
     </section>
 
     <!-- STEP 2: プラン -->
@@ -356,6 +409,7 @@ body{
       <h2 class="panel__title">プランを選んでください</h2>
       <p class="panel__note">料金はすべて税抜表示です。</p>
       <div id="planList"></div>
+      <p class="subtotal" id="subtotal-2"></p>
       <div class="btn-row">
         <button class="btn btn--ghost" data-back="1">戻る</button>
       </div>
@@ -369,6 +423,7 @@ body{
         <input type="date" id="dateInput">
         <p class="date-hint" id="dateHint" hidden></p>
       </div>
+      <p class="subtotal" id="subtotal-3"></p>
       <div class="btn-row">
         <button class="btn btn--ghost" data-back="2">戻る</button>
         <button class="btn btn--primary" id="toResult" disabled>見積りを見る</button>
@@ -379,21 +434,20 @@ body{
     <section class="panel" id="panel-4" hidden>
       <h2 class="panel__title">お見積り結果</h2>
 
-      <dl class="summary" id="summaryBox"></dl>
+      <div class="summary" id="summaryBox"></div>
 
       <div class="price-box">
-        <p class="price-box__label">通常価格</p>
-        <p class="price-box__original" id="priceOriginal"></p>
-        <p class="price-box__final-label" id="discountLabel"></p>
+        <p class="price-box__row" id="priceOriginal"></p>
+        <p class="price-box__badge" id="discountLabel"></p>
         <p class="price-box__final" id="priceFinal"></p>
-        <p class="price-box__tax">※税抜価格です。最終金額は打ち合わせ内容により変動します</p>
+        <p class="price-box__taxline" id="priceTaxIncluded"></p>
+        <p class="price-box__tax">※本シミュレーターの金額は概算です。<br>正式なお見積もりはLINE相談にてご案内します。</p>
       </div>
 
-      <button class="btn btn--line" id="lineBtn">この内容でLINE相談する</button>
-      <div class="btn-row">
-        <button class="btn btn--ghost" data-back="3">戻る</button>
-      </div>
-      <button class="reset-link" id="resetBtn">はじめから選び直す</button>
+      <p class="savings-box" id="savingsBox"></p>
+
+      <button class="btn btn--line" id="lineBtn">この内容でLINE相談する（10%OFFクーポンをGET）</button>
+      <button class="reset-link" id="resetBtn">最初からやり直す</button>
     </section>
   </main>
 </div>
@@ -439,29 +493,71 @@ const TIER_LABELS = {
    下の LOCATION_TIER の【両方】に手を入れてください。
    （片方だけだと画面に出てこなかったり、距離ティアが判定できません） */
 const AREA_DEF = {
-  "札幌エリア": ["大通公園", "北海道庁旧本庁舎", "中島公園", "円山公園", "モエレ沼公園", "旧道庁前庭園室"],
-  "小樽エリア": ["小樽運河", "天狗山展望台", "旧手宮線跡地"],
-  "旭川エリア": ["旭山公園", "突哨山", "旭川リバーサイド", "神楽岡公園"],
-  "函館エリア": ["五稜郭公園", "元町散策路", "函館山展望台", "金森赤レンガ倉庫", "函館聖堂ホール"],
-  "帯広エリア": ["帯広の森公園", "幸福駅", "十勝ヶ丘展望台"],
+  "札幌エリア": [
+    "大通公園", "中島公園", "サッポロファクトリー", "旧永山邸", "北海道庁赤レンガ庁舎", "すすきの",
+    "伏見稲荷神社", "天神山緑地", "サッポロビール園", "円山公園",
+    "モエレ沼公園", "百合が原公園", "平岡樹芸センター", "幌見峠", "藻岩山",
+    "滝野すずらん公園", "札幌芸術の森", "小樽運河＋手宮線 2箇所コース", "あそびーち石狩＋はまなすの丘公園コース",
+  ],
+  "旭川エリア": [
+    "護国神社", "上野ファーム", "旭川駅", "常盤公園",
+    "美瑛2箇所コース（青い池・四季彩の丘・ジェットコースターの路・千代田ファーム・拓真館から選択）",
+    "上富良野 日の出公園", "上富良野 フラワーランド",
+    "鳥沼公園", "留萌ゴールデンビーチ",
+  ],
+  "帯広エリア": [
+    "真鍋庭園", "真鍋庭園（真正閣）",
+    "十勝ヒルズ", "十勝牧場白樺並木",
+    "幸福駅",
+    "十勝千年の森",
+  ],
+  "函館エリア": [
+    "金森赤レンガ倉庫",
+  ],
+};
+
+/* 1-4b. エリアごとの取扱店舗（ロケ地一覧の下に補足表示するだけの情報。計算には使わない） */
+const AREA_STORE = {
+  "札幌エリア": "取扱店舗：札幌中央店、サッポロファクトリー店",
+  "旭川エリア": "取扱店舗：旭川店",
+  "帯広エリア": "取扱店舗：帯広店",
+  "函館エリア": "取扱店舗：函館北斗店",
 };
 
 /* 1-5. ロケ地マスタ：ロケ地名 → 距離ティア（near1 / near2 / mid / far1 / far2）
-   ★★★ ここは全部「仮の割り当て」です ★★★
-   実際の距離に基づいたものではないので、必ず貴社の実データに
-   差し替えてください（差し替え方は開発ガイド.mdを参照）。 */
+   貴社からいただいた実際の対応表（2026.7.30）を反映済みです。
+   エリアによっては一部の距離ティアが存在しません
+   （例：旭川エリアに近距離①はない／函館エリアは長距離①のみ）。 */
 const LOCATION_TIER = {
-  "大通公園": "near1", "北海道庁旧本庁舎": "near2", "中島公園": "near1",
-  "円山公園": "near2", "モエレ沼公園": "mid",   "旧道庁前庭園室": "mid",
-  "小樽運河": "mid",   "天狗山展望台": "mid",   "旧手宮線跡地": "far1",
-  "旭山公園": "far1",  "突哨山": "far1",        "旭川リバーサイド": "far1", "神楽岡公園": "far2",
-  "五稜郭公園": "far2", "元町散策路": "far2",    "函館山展望台": "far2",
-  "金森赤レンガ倉庫": "far2", "函館聖堂ホール": "far2",
-  "帯広の森公園": "far2", "幸福駅": "far2", "十勝ヶ丘展望台": "far2",
+  // --- 札幌エリア ---
+  "大通公園": "near1", "中島公園": "near1", "サッポロファクトリー": "near1",
+  "旧永山邸": "near1", "北海道庁赤レンガ庁舎": "near1", "すすきの": "near1",
+  "伏見稲荷神社": "near2", "天神山緑地": "near2", "サッポロビール園": "near2", "円山公園": "near2",
+  "モエレ沼公園": "mid", "百合が原公園": "mid", "平岡樹芸センター": "mid", "幌見峠": "mid", "藻岩山": "mid",
+  "滝野すずらん公園": "far1", "札幌芸術の森": "far1",
+  "小樽運河＋手宮線 2箇所コース": "far1", "あそびーち石狩＋はまなすの丘公園コース": "far1",
+
+  // --- 旭川エリア ---
+  "護国神社": "near2", "上野ファーム": "near2", "旭川駅": "near2", "常盤公園": "near2",
+  "美瑛2箇所コース（青い池・四季彩の丘・ジェットコースターの路・千代田ファーム・拓真館から選択）": "mid",
+  "上富良野 日の出公園": "far1", "上富良野 フラワーランド": "far1",
+  "鳥沼公園": "far2", "留萌ゴールデンビーチ": "far2",
+
+  // --- 帯広エリア ---
+  "真鍋庭園": "near1", "真鍋庭園（真正閣）": "near1",
+  "十勝ヒルズ": "near2", "十勝牧場白樺並木": "near2",
+  "幸福駅": "mid",
+  "十勝千年の森": "far1",
+
+  // --- 函館エリア ---
+  "金森赤レンガ倉庫": "far1",
 };
 
 /* 1-5. 土日祝の追加料金（税抜・円） */
 const HOLIDAY_SURCHARGE = 30000;
+
+/* 1-5b. 消費税率（税込価格の表示に使用。金額はすべて税抜が基準） */
+const TAX_RATE = 0.10;
 
 /* 1-6. 割引後の端数処理："round"=四捨五入 / "floor"=切り捨て / "ceil"=切り上げ */
 const ROUNDING = "round";
@@ -470,7 +566,8 @@ const ROUNDING = "round";
 const LINE_ID = "https://lin.ee/UrcaDKW";
 
 /* 1-8. GAS（記録係）の公開URL。「別紙：お引っ越し手順」でデプロイ後に書き換える */
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz0pNmYDfOeZAlp97FNHLah4VsRsjcU-Xfiam5Pjcw6d_Mb2sRERIUaTlj9mUOtkFoc_w/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz0pNmYDfOeZAlp97FNHLah4VsRsjcU-Xfiam5Pjcw6d_Mb2sRERIUaTlj9mUOtkFoc_w/exec
+";
 
 
 /* ============================================================
@@ -538,6 +635,7 @@ function isSurchargeDate(dateStr){
    3. 状態管理・料金計算
 ============================================================ */
 const state = { location: null, plan: null, date: null, isSurcharge: false };
+const openAreas = new Set(); // アコーディオンで開いているエリア名を記録
 
 function round(n){
   if (ROUNDING === "floor") return Math.floor(n);
@@ -545,6 +643,29 @@ function round(n){
   return Math.round(n);
 }
 function yen(n){ return "¥" + n.toLocaleString("ja-JP"); }
+
+// 選んだロケ地の距離ティアに合う「おすすめプラン」のキーを返す
+function recommendedPlanKey(){
+  const tier = LOCATION_TIER[state.location];
+  const entry = Object.entries(PLANS).find(([, p]) => p.group === "distance" && p.tier === tier);
+  return entry ? entry[0] : null;
+}
+
+// ステップ1〜3の下に出す「ここまでの合計（割引前）」。
+// プラン確定前でも、ロケ地から自動判定したおすすめプランの定価を仮表示する。
+function currentSubtotal(){
+  const key = state.plan || recommendedPlanKey();
+  if (!key) return null;
+  let total = PLANS[key].price;
+  if (state.isSurcharge) total += HOLIDAY_SURCHARGE;
+  return total;
+}
+function renderSubtotal(elId){
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const total = currentSubtotal();
+  el.innerHTML = total != null ? `ここまでの合計（割引前）<strong>${yen(total)}</strong>` : "";
+}
 
 function calc(){
   const plan = PLANS[state.plan];
@@ -558,9 +679,10 @@ function calc(){
   // 土日祝加算は「割引後」に上乗せする（加算額自体は割引しない）
   const original = plan.price + surcharge;
   const final = discountedBase + surcharge;
+  const finalWithTax = round(final * (1 + TAX_RATE));
   const rateApplied = (plan.price - discountedBase) / plan.price;
 
-  return { plan, surcharge, original, final, rateApplied };
+  return { plan, surcharge, original, final, finalWithTax, rateApplied };
 }
 
 
@@ -583,29 +705,49 @@ function renderLocations(){
   const wrap = document.getElementById("locationList");
   wrap.innerHTML = "";
   Object.entries(AREA_DEF).forEach(([area, names]) => {
-    const block = document.createElement("div");
-    block.className = "area-block";
-    block.innerHTML = `<p class="area-block__title">${area}</p>`;
-    const grid = document.createElement("div");
-    grid.className = "tile-grid";
+    const hasSelection = names.includes(state.location);
+    const isOpen = hasSelection || openAreas.has(area);
+
+    const box = document.createElement("div");
+    box.className = "area" + (isOpen ? " is-open" : "");
+
+    const header = document.createElement("button");
+    header.type = "button";
+    header.className = "area__header";
+    header.innerHTML = `
+      <span>${area}<span class="area__store">${AREA_STORE[area] || ""}</span></span>
+      <span class="area__header-right">
+        ${hasSelection ? `<span class="area__header-selected">${state.location}</span>` : ""}
+        <svg class="area__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </span>`;
+    header.addEventListener("click", () => {
+      if (openAreas.has(area)) openAreas.delete(area); else openAreas.add(area);
+      renderLocations();
+    });
+
+    const body = document.createElement("div");
+    body.className = "area__body";
     names.forEach(name => {
       const tier = LOCATION_TIER[name];
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "tile" + (state.location === name ? " is-selected" : "");
-      btn.innerHTML = `${name}<span class="tile__badge">${tier ? TIER_LABELS[tier] + "扱い" : "※距離ティア未設定"}</span>`;
-      btn.addEventListener("click", () => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "loc-row" + (state.location === name ? " is-selected" : "");
+      row.innerHTML = `<span>${name}</span><span class="loc-row__badge">${tier ? TIER_LABELS[tier] : "※距離ティア未設定"}</span>`;
+      row.addEventListener("click", () => {
         state.location = name;
         state.plan = null; // ロケ地を変えたらプラン選択はやり直し
         renderLocations();
-        renderPlans(); // 距離ティアが変わるのでプラン一覧を再描画
+        renderPlans();
         showStep(2);
       });
-      grid.appendChild(btn);
+      body.appendChild(row);
     });
-    block.appendChild(grid);
-    wrap.appendChild(block);
+
+    box.appendChild(header);
+    box.appendChild(body);
+    wrap.appendChild(box);
   });
+  renderSubtotal("subtotal-1");
 }
 
 function renderPlans(){
@@ -630,13 +772,12 @@ function renderPlans(){
     btn.className = "plan-card" + (state.plan === key ? " is-selected" : "");
     btn.innerHTML = `
       <span>
-        <span class="plan-card__name">${plan.name}</span>
-        ${isRecommended ? '<span class="tile__badge">選んだロケ地のおすすめ</span>' : ""}
-        <br><span class="plan-card__desc">${plan.desc || ""}</span>
+        <span class="plan-card__name">${plan.name}${isRecommended ? '<span class="plan-card__badge">おすすめ</span>' : ""}</span>
+        <span class="plan-card__desc">${plan.desc || ""}</span>
       </span>
       <span class="plan-card__price">
-        <span style="text-decoration:line-through;color:var(--ink-soft);font-size:12px;display:block;">${yen(plan.price)}</span>
-        ${yen(discountedBase)}
+        <span class="plan-card__price-original">${yen(plan.price)}</span>
+        <span class="plan-card__price-final">${yen(discountedBase)}</span>
       </span>`;
     btn.addEventListener("click", () => {
       state.plan = key;
@@ -645,22 +786,24 @@ function renderPlans(){
     });
     wrap.appendChild(btn);
   });
+  renderSubtotal("subtotal-2");
 }
 
 function renderSummary(){
-  const { plan, surcharge, original, final, rateApplied } = calc();
+  const { plan, original, final, finalWithTax, rateApplied } = calc();
   const tier = LOCATION_TIER[state.location];
   const box = document.getElementById("summaryBox");
   box.innerHTML = `
-    <dt>ロケ地</dt><dd>${state.location}${tier ? "（" + TIER_LABELS[tier] + "扱い）" : ""}</dd>
-    <dt>プラン</dt><dd>${plan.name}</dd>
-    <dt>撮影日</dt><dd>${state.date}${state.isSurcharge ? "（土日祝）" : "（平日）"}</dd>
+    <div class="summary-row"><span class="summary-row__label">ロケ地</span><span class="summary-row__value">${state.location}${tier ? "（" + TIER_LABELS[tier] + "）" : ""}</span></div>
+    <div class="summary-row"><span class="summary-row__label">プラン</span><span class="summary-row__value">${plan.name}</span></div>
+    <div class="summary-row"><span class="summary-row__label">撮影日</span><span class="summary-row__value">${state.date}${state.isSurcharge ? "（土日祝）" : "（平日）"}</span></div>
   `;
-  document.getElementById("priceOriginal").textContent =
-    yen(plan.price) + (surcharge ? ` ＋ 土日祝加算 ${yen(surcharge)}` : "");
-  document.getElementById("discountLabel").textContent =
-    `${(Math.round(rateApplied * 1000) / 10)}%OFF 適用後`;
+  document.getElementById("priceOriginal").innerHTML = `通常価格 <del>${yen(original)}</del>`;
+  document.getElementById("discountLabel").textContent = `${Math.round(rateApplied * 1000) / 10}%OFF 適用後`;
   document.getElementById("priceFinal").innerHTML = `${yen(final)}<small>（税抜）</small>`;
+  document.getElementById("priceTaxIncluded").textContent = `税込 ${yen(finalWithTax)}`;
+  document.getElementById("savingsBox").innerHTML =
+    `LINE相談のご利用で<br><strong>${yen(original - final)}</strong> おトクになります`;
 }
 
 
@@ -671,7 +814,7 @@ document.getElementById("dateInput").addEventListener("change", (e) => {
   const val = e.target.value;
   const hint = document.getElementById("dateHint");
   const toResultBtn = document.getElementById("toResult");
-  if (!val){ hint.hidden = true; toResultBtn.disabled = true; return; }
+  if (!val){ hint.hidden = true; toResultBtn.disabled = true; state.isSurcharge = false; renderSubtotal("subtotal-3"); return; }
   state.date = val;
   state.isSurcharge = isSurchargeDate(val);
   hint.hidden = false;
@@ -679,6 +822,7 @@ document.getElementById("dateInput").addEventListener("change", (e) => {
   hint.textContent = state.isSurcharge
     ? `この日は土日祝のため、${yen(HOLIDAY_SURCHARGE)} が加算されます`
     : "平日のため追加料金はかかりません";
+  renderSubtotal("subtotal-3");
 });
 
 document.getElementById("toResult").addEventListener("click", () => {
@@ -693,7 +837,9 @@ document.querySelectorAll("[data-back]").forEach(btn => {
 document.getElementById("resetBtn").addEventListener("click", () => {
   state.location = state.plan = state.date = null;
   state.isSurcharge = false;
+  openAreas.clear();
   document.getElementById("dateInput").value = "";
+  document.getElementById("dateHint").hidden = true;
   renderLocations();
   showStep(1);
 });
