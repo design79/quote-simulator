@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-<title>フォトウェディング見積もりシミュレーター</title>
+<title>かんたん見積もり｜写真工房ぱれっと</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@600;700&family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -114,7 +114,9 @@ body{
   border-radius:var(--radius-sm);
   margin-bottom:10px;
   overflow:hidden;
+  transition:border-color .15s ease;
 }
+.area.has-selection{border-color:var(--accent);}
 .area__header{
   display:flex;
   align-items:center;
@@ -129,7 +131,9 @@ body{
   color:var(--ink);
   cursor:pointer;
   font-family:var(--font-body);
+  transition:background .15s ease;
 }
+.area.has-selection .area__header{background:var(--accent-soft);}
 .area__store{
   display:block;
   font-size:11px;
@@ -245,31 +249,32 @@ body{
 .plan-card__price-original{display:block;font-size:11px;color:var(--ink-soft);text-decoration:line-through;}
 .plan-card__price-final{font-size:16.5px;font-weight:900;color:var(--accent);}
 
-/* ---- 日付選択 ---- */
-.date-field{margin-bottom:4px;}
-.date-field input[type="date"]{
+/* ---- 撮影日カード（平日／土日・祝日） ---- */
+.date-card{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
   width:100%;
-  height:48px;
-  box-sizing:border-box;
-  padding:0 13px;
-  font-size:16px; /* 16px未満だとiOSでタップ時に自動ズームが入るため16pxに */
-  line-height:normal;
-  font-family:var(--font-body);
+  padding:15px 14px;
+  margin-bottom:10px;
+  background:var(--surface);
   border:1.5px solid var(--line);
   border-radius:var(--radius-sm);
-  background:var(--surface);
-  color:var(--ink);
+  cursor:pointer;
+  text-align:left;
+  transition:.15s ease;
+  font-family:var(--font-body);
 }
-.date-hint{
-  margin-top:10px;
-  font-size:12.5px;
-  font-weight:700;
-  padding:12px;
-  border-radius:var(--radius-sm);
+.date-card:hover{border-color:var(--accent);}
+.date-card.is-selected{
+  border-color:var(--accent);
   background:var(--accent-soft);
-  color:var(--accent-dark);
 }
-.date-hint[hidden]{display:none;}
+.date-card__name{font-size:14.5px;font-weight:700;color:var(--ink);}
+.date-card__desc{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
+.date-card__addon{font-size:14.5px;font-weight:900;color:var(--ink-soft);white-space:nowrap;}
+.date-card.is-selected .date-card__addon{color:var(--accent);}
 
 /* ---- 共通ボタン ---- */
 .btn{
@@ -404,9 +409,12 @@ body{
     <!-- STEP 1: ロケ地 -->
     <section class="panel" id="panel-1">
       <h2 class="panel__title">撮影したいロケ地を選んでください</h2>
-      <p class="panel__note">エリアを開いて選択してください。タップすると自動で次に進みます。</p>
+      <p class="panel__note">エリアを開いて選択してください。</p>
       <div id="locationList"></div>
       <p class="subtotal" id="subtotal-1"></p>
+      <div class="btn-row">
+        <button class="btn btn--primary" id="toStep2" disabled>次へ</button>
+      </div>
     </section>
 
     <!-- STEP 2: プラン -->
@@ -417,17 +425,15 @@ body{
       <p class="subtotal" id="subtotal-2"></p>
       <div class="btn-row">
         <button class="btn btn--ghost" data-back="1">戻る</button>
+        <button class="btn btn--primary" id="toStep3" disabled>次へ</button>
       </div>
     </section>
 
     <!-- STEP 3: 撮影日 -->
     <section class="panel" id="panel-3" hidden>
       <h2 class="panel__title">撮影希望日を選んでください</h2>
-      <p class="panel__note">土日・祝日は追加料金の対象です（自動判定されます）。</p>
-      <div class="date-field">
-        <input type="date" id="dateInput">
-        <p class="date-hint" id="dateHint" hidden></p>
-      </div>
+      <p class="panel__note">時期・曜日による加算を事前にご確認いただけます</p>
+      <div id="dateList"></div>
       <p class="subtotal" id="subtotal-3"></p>
       <div class="btn-row">
         <button class="btn btn--ghost" data-back="2">戻る</button>
@@ -566,8 +572,12 @@ const LOCATION_TIER = {
   "金森赤レンガ倉庫": "far1",
 };
 
-/* 1-5. 土日祝の追加料金（税抜・円） */
-const HOLIDAY_SURCHARGE = 30000;
+/* 1-5. 撮影日の選択肢（カレンダーではなく「平日／土日・祝日」の2択で選んでもらう方式）
+   addに0以外を指定すると、その金額が割引後の支払額に上乗せされます */
+const DATE_OPTIONS = {
+  weekday: { name: "平日",         desc: "いちばんお得な日程", add: 0 },
+  weekend: { name: "土日・祝日",   desc: "土日・祝日は追加料金の対象です", add: 30000 },
+};
 
 /* 1-5b. 消費税率（税込価格の表示に使用。金額はすべて税抜が基準） */
 const TAX_RATE = 0.10;
@@ -576,77 +586,18 @@ const TAX_RATE = 0.10;
 const ROUNDING = "round";
 
 /* 1-7. LINE公式アカウントのID（@は付けない） */
-const LINE_ID = "https://page.line.me/823ajfjj?liff.referrer=https%3A%2F%2Fwww.studio-palette.com%2F";
+const LINE_ID = "https://lin.ee/UrcaDKW";
 
 /* 1-8. GAS（記録係）の公開URL。「別紙：お引っ越し手順」でデプロイ後に書き換える */
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz0pNmYDfOeZAlp97FNHLah4VsRsjcU-Xfiam5Pjcw6d_Mb2sRERIUaTlj9mUOtkFoc_w/exec";
 
 
-/* ============================================================
-   2. 祝日の自動判定（土日祝の追加料金に使用）
-   固定日・ハッピーマンデー・春分/秋分の日を計算式で求めています。
-   春分/秋分は近似計算式のため、年によっては前後1日ずれる可能性が
-   あります。毎年2月頃に内閣府の発表と照合してください。
-   参考：内閣府「国民の祝日」 https://www8.cao.go.jp/chosei/shukujitsu/gaiyou.html
-============================================================ */
-function nthMonday(year, month, n){
-  const first = new Date(year, month - 1, 1);
-  const daysUntilMonday = (1 - first.getDay() + 7) % 7; // 1日から最初の月曜日までの日数
-  const firstMonday = 1 + daysUntilMonday;
-  return firstMonday + (n - 1) * 7;
-}
-function vernalEquinox(year){
-  return Math.floor(20.8431 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
-}
-function autumnalEquinox(year){
-  return Math.floor(23.2488 + 0.242194 * (year - 1980) - Math.floor((year - 1980) / 4));
-}
-const _holidayCache = {};
-function getHolidaySet(year){
-  if (_holidayCache[year]) return _holidayCache[year];
-  const list = [];
-  const push = (m, d) => list.push(new Date(year, m - 1, d));
-  push(1, 1);                          // 元日
-  push(2, 11);                         // 建国記念の日
-  push(2, 23);                         // 天皇誕生日
-  push(4, 29);                         // 昭和の日
-  push(5, 3); push(5, 4); push(5, 5);  // 憲法記念日・みどりの日・こどもの日
-  push(8, 11);                         // 山の日
-  push(11, 3);                         // 文化の日
-  push(11, 23);                        // 勤労感謝の日
-  push(1, nthMonday(year, 1, 2));      // 成人の日
-  push(7, nthMonday(year, 7, 3));      // 海の日
-  push(9, nthMonday(year, 9, 3));      // 敬老の日
-  push(10, nthMonday(year, 10, 2));    // スポーツの日
-  push(3, vernalEquinox(year));        // 春分の日
-  push(9, autumnalEquinox(year));      // 秋分の日
-
-  const key = d => d.toISOString().slice(0, 10);
-  const set = new Set(list.map(key));
-  // 振替休日：日曜と重なった祝日の翌日以降、祝日でない最初の日を休日にする
-  list.forEach(d => {
-    if (d.getDay() === 0) {
-      const next = new Date(d);
-      do { next.setDate(next.getDate() + 1); } while (set.has(key(next)));
-      set.add(key(next));
-    }
-  });
-  _holidayCache[year] = set;
-  return set;
-}
-function isSurchargeDate(dateStr){
-  const d = new Date(dateStr + "T00:00:00");
-  if (isNaN(d.getTime())) return false; // 不正な日付は非対象として扱う
-  const day = d.getDay();
-  if (day === 0 || day === 6) return true; // 土日
-  return getHolidaySet(d.getFullYear()).has(dateStr);
-}
 
 
 /* ============================================================
    3. 状態管理・料金計算
 ============================================================ */
-const state = { location: null, plan: null, date: null, isSurcharge: false };
+const state = { location: null, plan: null, date: null, dateKey: null, isSurcharge: false };
 const openAreas = new Set(); // アコーディオンで開いているエリア名を記録
 
 function round(n){
@@ -669,7 +620,7 @@ function currentSubtotal(){
   const key = state.plan || recommendedPlanKey();
   if (!key) return null;
   let total = PLANS[key].price;
-  if (state.isSurcharge) total += HOLIDAY_SURCHARGE;
+  if (state.isSurcharge) total += DATE_OPTIONS.weekend.add;
   return total;
 }
 function renderSubtotal(elId){
@@ -681,7 +632,7 @@ function renderSubtotal(elId){
 
 function calc(){
   const plan = PLANS[state.plan];
-  const surcharge = state.isSurcharge ? HOLIDAY_SURCHARGE : 0;
+  const surcharge = state.isSurcharge ? DATE_OPTIONS.weekend.add : 0;
 
   // 支払額：個別指定（finalPrice）があればそれを使い、なければ標準割引率で計算
   const discountedBase = plan.finalPrice != null
@@ -721,7 +672,7 @@ function renderLocations(){
     const isOpen = hasSelection || openAreas.has(area);
 
     const box = document.createElement("div");
-    box.className = "area" + (isOpen ? " is-open" : "");
+    box.className = "area" + (isOpen ? " is-open" : "") + (hasSelection ? " has-selection" : "");
 
     const header = document.createElement("button");
     header.type = "button";
@@ -750,7 +701,7 @@ function renderLocations(){
         state.plan = null; // ロケ地を変えたらプラン選択はやり直し
         renderLocations();
         renderPlans();
-        showStep(2);
+        document.getElementById("toStep2").disabled = false;
       });
       body.appendChild(row);
     });
@@ -760,6 +711,7 @@ function renderLocations(){
     wrap.appendChild(box);
   });
   renderSubtotal("subtotal-1");
+  document.getElementById("toStep2").disabled = !state.location;
 }
 
 function renderPlans(){
@@ -794,11 +746,38 @@ function renderPlans(){
     btn.addEventListener("click", () => {
       state.plan = key;
       renderPlans();
-      showStep(3);
+      document.getElementById("toStep3").disabled = false;
     });
     wrap.appendChild(btn);
   });
   renderSubtotal("subtotal-2");
+  document.getElementById("toStep3").disabled = !state.plan;
+}
+
+function renderDates(){
+  const wrap = document.getElementById("dateList");
+  wrap.innerHTML = "";
+  Object.entries(DATE_OPTIONS).forEach(([key, opt]) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "date-card" + (state.dateKey === key ? " is-selected" : "");
+    btn.innerHTML = `
+      <span>
+        <span class="date-card__name">${opt.name}</span>
+        <span class="date-card__desc">${opt.desc}</span>
+      </span>
+      <span class="date-card__addon">${opt.add > 0 ? "+" + yen(opt.add) : "追加なし"}</span>`;
+    btn.addEventListener("click", () => {
+      state.dateKey = key;
+      state.date = opt.name;
+      state.isSurcharge = opt.add > 0;
+      renderDates();
+      document.getElementById("toResult").disabled = false;
+      renderSubtotal("subtotal-3");
+    });
+    wrap.appendChild(btn);
+  });
+  renderSubtotal("subtotal-3");
 }
 
 function renderSummary(){
@@ -808,7 +787,7 @@ function renderSummary(){
   box.innerHTML = `
     <div class="summary-row"><span class="summary-row__label">ロケ地</span><span class="summary-row__value">${state.location}${tier ? "（" + TIER_LABELS[tier] + "）" : ""}</span></div>
     <div class="summary-row"><span class="summary-row__label">プラン</span><span class="summary-row__value">${plan.name}</span></div>
-    <div class="summary-row"><span class="summary-row__label">撮影日</span><span class="summary-row__value">${state.date}${state.isSurcharge ? "（土日祝）" : "（平日）"}</span></div>
+    <div class="summary-row"><span class="summary-row__label">撮影日</span><span class="summary-row__value">${state.date}</span></div>
   `;
   document.getElementById("priceOriginal").innerHTML = `通常価格 <del>${yen(original)}</del>`;
   document.getElementById("discountLabel").textContent = `${Math.round(rateApplied * 1000) / 10}%OFF 適用後`;
@@ -822,20 +801,8 @@ function renderSummary(){
 /* ============================================================
    5. イベント設定
 ============================================================ */
-document.getElementById("dateInput").addEventListener("change", (e) => {
-  const val = e.target.value;
-  const hint = document.getElementById("dateHint");
-  const toResultBtn = document.getElementById("toResult");
-  if (!val){ hint.hidden = true; toResultBtn.disabled = true; state.isSurcharge = false; renderSubtotal("subtotal-3"); return; }
-  state.date = val;
-  state.isSurcharge = isSurchargeDate(val);
-  hint.hidden = false;
-  toResultBtn.disabled = false;
-  hint.textContent = state.isSurcharge
-    ? `この日は土日祝のため、${yen(HOLIDAY_SURCHARGE)} が加算されます`
-    : "平日のため追加料金はかかりません";
-  renderSubtotal("subtotal-3");
-});
+document.getElementById("toStep2").addEventListener("click", () => showStep(2));
+document.getElementById("toStep3").addEventListener("click", () => showStep(3));
 
 document.getElementById("toResult").addEventListener("click", () => {
   renderSummary();
@@ -847,12 +814,15 @@ document.querySelectorAll("[data-back]").forEach(btn => {
 });
 
 document.getElementById("resetBtn").addEventListener("click", () => {
-  state.location = state.plan = state.date = null;
+  state.location = state.plan = state.date = state.dateKey = null;
   state.isSurcharge = false;
   openAreas.clear();
-  document.getElementById("dateInput").value = "";
-  document.getElementById("dateHint").hidden = true;
+  document.getElementById("toStep2").disabled = true;
+  document.getElementById("toStep3").disabled = true;
+  document.getElementById("toResult").disabled = true;
   renderLocations();
+  renderPlans();
+  renderDates();
   showStep(1);
 });
 
@@ -893,6 +863,7 @@ document.getElementById("lineBtn").addEventListener("click", () => {
 ============================================================ */
 renderLocations();
 renderPlans();
+renderDates();
 showStep(1);
 </script>
 </body>
