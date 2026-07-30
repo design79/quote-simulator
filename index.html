@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
 <title>フォトウェディング見積もりシミュレーター</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -226,6 +227,7 @@ body{
 .plan-card__name{
   font-size:14.5px;
   font-weight:700;
+  color:var(--ink);
 }
 .plan-card__badge{
   display:inline-block;
@@ -247,8 +249,11 @@ body{
 .date-field{margin-bottom:4px;}
 .date-field input[type="date"]{
   width:100%;
-  padding:13px;
-  font-size:15px;
+  height:48px;
+  box-sizing:border-box;
+  padding:0 13px;
+  font-size:16px; /* 16px未満だとiOSでタップ時に自動ズームが入るため16pxに */
+  line-height:normal;
   font-family:var(--font-body);
   border:1.5px solid var(--line);
   border-radius:var(--radius-sm);
@@ -316,7 +321,7 @@ body{
 }
 .summary-row + .summary-row{border-top:1px dashed var(--line);}
 .summary-row__label{color:var(--ink-soft);flex-shrink:0;}
-.summary-row__value{font-weight:700;text-align:right;}
+.summary-row__value{font-weight:700;text-align:right;color:var(--ink);}
 
 .price-box{
   text-align:center;
@@ -384,7 +389,7 @@ body{
 
   <header class="app__header">
     <p class="app__eyebrow">PHOTO WEDDING SIMULATOR</p>
-    <h1 class="app__title">フォトウェディング見積もりシミュレーター</h1>
+    <h1 class="app__title">かんたん見積もり</h1>
     <p class="app__lead">ロケ地・プラン・撮影日を選ぶだけで、その場で概算料金が分かります</p>
   </header>
 
@@ -493,35 +498,43 @@ const TIER_LABELS = {
    下の LOCATION_TIER の【両方】に手を入れてください。
    （片方だけだと画面に出てこなかったり、距離ティアが判定できません） */
 const AREA_DEF = {
-  "札幌エリア": [
+  "札幌市内": [
     "大通公園", "中島公園", "サッポロファクトリー", "旧永山邸", "北海道庁赤レンガ庁舎", "すすきの",
     "伏見稲荷神社", "天神山緑地", "サッポロビール園", "円山公園",
     "モエレ沼公園", "百合が原公園", "平岡樹芸センター", "幌見峠", "藻岩山",
-    "滝野すずらん公園", "札幌芸術の森", "小樽運河＋手宮線 2箇所コース", "あそびーち石狩＋はまなすの丘公園コース",
+    "滝野すずらん公園", "札幌芸術の森",
   ],
-  "旭川エリア": [
+  "小樽・石狩": [
+    "小樽運河＋手宮線 2箇所コース", "あそびーち石狩＋はまなすの丘公園コース",
+  ],
+  "旭川": [
     "護国神社", "上野ファーム", "旭川駅", "常盤公園",
+  ],
+  "美瑛・富良野・留萌": [
     "美瑛2箇所コース（青い池・四季彩の丘・ジェットコースターの路・千代田ファーム・拓真館から選択）",
     "上富良野 日の出公園", "上富良野 フラワーランド",
     "鳥沼公園", "留萌ゴールデンビーチ",
   ],
-  "帯広エリア": [
+  "帯広・十勝": [
     "真鍋庭園", "真鍋庭園（真正閣）",
     "十勝ヒルズ", "十勝牧場白樺並木",
     "幸福駅",
     "十勝千年の森",
   ],
-  "函館エリア": [
+  "函館": [
     "金森赤レンガ倉庫",
   ],
 };
 
-/* 1-4b. エリアごとの取扱店舗（ロケ地一覧の下に補足表示するだけの情報。計算には使わない） */
+/* 1-4b. エリアごとの取扱店舗（ロケ地一覧の下に補足表示するだけの情報。計算には使わない）
+   小樽・石狩／美瑛・富良野・留萌は、それぞれ元の札幌エリア・旭川エリアの取扱店舗を引き継いでいます */
 const AREA_STORE = {
-  "札幌エリア": "取扱店舗：札幌中央店、サッポロファクトリー店",
-  "旭川エリア": "取扱店舗：旭川店",
-  "帯広エリア": "取扱店舗：帯広店",
-  "函館エリア": "取扱店舗：函館北斗店",
+  "札幌市内": "取扱店舗：札幌中央店、サッポロファクトリー店",
+  "小樽・石狩": "取扱店舗：札幌中央店、サッポロファクトリー店",
+  "旭川": "取扱店舗：旭川店",
+  "美瑛・富良野・留萌": "取扱店舗：旭川店",
+  "帯広・十勝": "取扱店舗：帯広店",
+  "函館": "取扱店舗：函館北斗店",
 };
 
 /* 1-5. ロケ地マスタ：ロケ地名 → 距離ティア（near1 / near2 / mid / far1 / far2）
