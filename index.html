@@ -407,25 +407,37 @@ body{
    ここより下のコード（2以降）は基本的に触る必要はありません。
 ============================================================ */
 
-/* 1-1. プラン価格（税抜・円） */
+/* 1-1. プラン価格（税抜・円）
+   2026.7.30改定版。9プランのうち5つ（near1〜far2）は
+   「ロケ地の距離ティア」に連動する基本プラン、
+   残り4つ（lokesta以降）は場所に関係なく選べる追加プランです。
+
+   finalPrice を指定した場合はその金額をそのまま支払額として使います
+   （near1だけ特別価格のため個別指定。他は指定なし＝下のDEFAULT_DISCOUNT_RATEで自動計算）。 */
 const PLANS = {
-  planA:   { name: "Plan A",     desc: "ロケーション撮影のみ",       price: 120000 },
-  oneDay:  { name: "1dayプラン", desc: "ロケ+スタジオ 1日満喫コース", price: 298000 },
-  premium: { name: "プレミアム", desc: "ロケ+スタジオ+アルバム付き", price: 480000 },
+  near1:   { name: "A.ロケーション近距離①", group: "distance", tier: "near1", price: 120000, finalPrice: 99000 },
+  near2:   { name: "A.ロケーション近距離②", group: "distance", tier: "near2", price: 135000 },
+  mid:     { name: "A.ロケーション中距離",   group: "distance", tier: "mid",   price: 160000 },
+  far1:    { name: "A.ロケーション長距離①", group: "distance", tier: "far1",  price: 208000 },
+  far2:    { name: "A.ロケーション長距離②", group: "distance", tier: "far2",  price: 218000 },
+  lokesta: { name: "ロケスタ",               group: "upgrade", desc: "ロケ+スタジオ",       price: 148000 },
+  twoLook: { name: "ロケーション2着",         group: "upgrade", desc: "衣装2着プラン",       price: 198000 },
+  oneDay:  { name: "ロケーション1day",        group: "upgrade", desc: "1日満喫コース",       price: 298000 },
+  premium: { name: "ロケーションプレミア",     group: "upgrade", desc: "アルバム付き",        price: 480000 },
 };
 
-/* 1-2. ロケ地グループごとの割引率
-   「ロケ地がどちらのグループに属するか」で割引率が決まります。
-   グループ自体を増やしたいときはここに追加してください。 */
-const DISCOUNT_GROUPS = {
-  location: { label: "ロケーション系プラン", rate: 0.20 }, // 20%OFF
-  lokesta:  { label: "ロケスタプラン",       rate: 0.10 }, // 10%OFF
+/* 1-2. 標準の割引率（finalPriceを個別指定していないプランに適用） */
+const DEFAULT_DISCOUNT_RATE = 0.10; // 10%OFF
+
+/* 1-3. 距離ティアの表示ラベル（ロケ地一覧のバッジ表示に使用） */
+const TIER_LABELS = {
+  near1: "近距離①", near2: "近距離②", mid: "中距離", far1: "長距離①", far2: "長距離②",
 };
 
-/* 1-3. エリアの定義と、エリア内でのロケ地の並び順
+/* 1-4. エリアの定義と、エリア内でのロケ地の並び順
    ロケ地を追加・削除するときは、このAREA_DEFと
-   下の locationData の【両方】に手を入れてください。
-   （片方だけだと画面に出てこなかったり、計算に反映されません） */
+   下の LOCATION_TIER の【両方】に手を入れてください。
+   （片方だけだと画面に出てこなかったり、距離ティアが判定できません） */
 const AREA_DEF = {
   "札幌エリア": ["大通公園", "北海道庁旧本庁舎", "中島公園", "円山公園", "モエレ沼公園", "旧道庁前庭園室"],
   "小樽エリア": ["小樽運河", "天狗山展望台", "旧手宮線跡地"],
@@ -434,17 +446,18 @@ const AREA_DEF = {
   "帯広エリア": ["帯広の森公園", "幸福駅", "十勝ヶ丘展望台"],
 };
 
-/* 1-4. ロケ地マスタ：ロケ地名 → 割引グループ（"location" か "lokesta"）
-   ※ここに載っている名称・エリア分けはサンプルです。
-     必ず貴社の実際のロケ地リストに置き換えてください。 */
-const locationData = {
-  "大通公園": "location", "北海道庁旧本庁舎": "lokesta", "中島公園": "location",
-  "円山公園": "location", "モエレ沼公園": "location", "旧道庁前庭園室": "lokesta",
-  "小樽運河": "location", "天狗山展望台": "location", "旧手宮線跡地": "location",
-  "旭山公園": "location", "突哨山": "location", "旭川リバーサイド": "location", "神楽岡公園": "location",
-  "五稜郭公園": "location", "元町散策路": "location", "函館山展望台": "location",
-  "金森赤レンガ倉庫": "lokesta", "函館聖堂ホール": "lokesta",
-  "帯広の森公園": "location", "幸福駅": "location", "十勝ヶ丘展望台": "location",
+/* 1-5. ロケ地マスタ：ロケ地名 → 距離ティア（near1 / near2 / mid / far1 / far2）
+   ★★★ ここは全部「仮の割り当て」です ★★★
+   実際の距離に基づいたものではないので、必ず貴社の実データに
+   差し替えてください（差し替え方は開発ガイド.mdを参照）。 */
+const LOCATION_TIER = {
+  "大通公園": "near1", "北海道庁旧本庁舎": "near2", "中島公園": "near1",
+  "円山公園": "near2", "モエレ沼公園": "mid",   "旧道庁前庭園室": "mid",
+  "小樽運河": "mid",   "天狗山展望台": "mid",   "旧手宮線跡地": "far1",
+  "旭山公園": "far1",  "突哨山": "far1",        "旭川リバーサイド": "far1", "神楽岡公園": "far2",
+  "五稜郭公園": "far2", "元町散策路": "far2",    "函館山展望台": "far2",
+  "金森赤レンガ倉庫": "far2", "函館聖堂ホール": "far2",
+  "帯広の森公園": "far2", "幸福駅": "far2", "十勝ヶ丘展望台": "far2",
 };
 
 /* 1-5. 土日祝の追加料金（税抜・円） */
@@ -454,7 +467,7 @@ const HOLIDAY_SURCHARGE = 30000;
 const ROUNDING = "round";
 
 /* 1-7. LINE公式アカウントのID（@は付けない） */
-const LINE_ID = "https://lin.ee/7Wr5xYV";
+const LINE_ID = "https://lin.ee/UrcaDKW";
 
 /* 1-8. GAS（記録係）の公開URL。「別紙：お引っ越し手順」でデプロイ後に書き換える */
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz0pNmYDfOeZAlp97FNHLah4VsRsjcU-Xfiam5Pjcw6d_Mb2sRERIUaTlj9mUOtkFoc_w/exec";
@@ -514,6 +527,7 @@ function getHolidaySet(year){
 }
 function isSurchargeDate(dateStr){
   const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d.getTime())) return false; // 不正な日付は非対象として扱う
   const day = d.getDay();
   if (day === 0 || day === 6) return true; // 土日
   return getHolidaySet(d.getFullYear()).has(dateStr);
@@ -534,12 +548,19 @@ function yen(n){ return "¥" + n.toLocaleString("ja-JP"); }
 
 function calc(){
   const plan = PLANS[state.plan];
-  const groupKey = locationData[state.location];
-  const group = DISCOUNT_GROUPS[groupKey];
   const surcharge = state.isSurcharge ? HOLIDAY_SURCHARGE : 0;
+
+  // 支払額：個別指定（finalPrice）があればそれを使い、なければ標準割引率で計算
+  const discountedBase = plan.finalPrice != null
+    ? plan.finalPrice
+    : round(plan.price * (1 - DEFAULT_DISCOUNT_RATE));
+
+  // 土日祝加算は「割引後」に上乗せする（加算額自体は割引しない）
   const original = plan.price + surcharge;
-  const final = round(original * (1 - group.rate));
-  return { plan, group, surcharge, original, final };
+  const final = discountedBase + surcharge;
+  const rateApplied = (plan.price - discountedBase) / plan.price;
+
+  return { plan, surcharge, original, final, rateApplied };
 }
 
 
@@ -568,15 +589,16 @@ function renderLocations(){
     const grid = document.createElement("div");
     grid.className = "tile-grid";
     names.forEach(name => {
-      const groupKey = locationData[name];
-      const group = DISCOUNT_GROUPS[groupKey];
+      const tier = LOCATION_TIER[name];
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "tile" + (state.location === name ? " is-selected" : "");
-      btn.innerHTML = `${name}<span class="tile__badge">${group ? group.label + " " + (group.rate*100) + "%OFF" : ""}</span>`;
+      btn.innerHTML = `${name}<span class="tile__badge">${tier ? TIER_LABELS[tier] + "扱い" : "※距離ティア未設定"}</span>`;
       btn.addEventListener("click", () => {
         state.location = name;
+        state.plan = null; // ロケ地を変えたらプラン選択はやり直し
         renderLocations();
+        renderPlans(); // 距離ティアが変わるのでプラン一覧を再描画
         showStep(2);
       });
       grid.appendChild(btn);
@@ -589,16 +611,33 @@ function renderLocations(){
 function renderPlans(){
   const wrap = document.getElementById("planList");
   wrap.innerHTML = "";
-  Object.entries(PLANS).forEach(([key, plan]) => {
+
+  const tier = LOCATION_TIER[state.location];
+  // 選んだロケ地の距離ティアに一致するプラン1件 ＋ 場所を問わず選べる追加プラン4件だけを表示
+  const visibleKeys = Object.entries(PLANS)
+    .filter(([, p]) => (p.group === "distance" && p.tier === tier) || p.group === "upgrade")
+    .map(([key]) => key);
+
+  visibleKeys.forEach(key => {
+    const plan = PLANS[key];
+    const discountedBase = plan.finalPrice != null
+      ? plan.finalPrice
+      : round(plan.price * (1 - DEFAULT_DISCOUNT_RATE));
+    const isRecommended = plan.group === "distance";
+
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "plan-card" + (state.plan === key ? " is-selected" : "");
     btn.innerHTML = `
       <span>
-        <span class="plan-card__name">${plan.name}</span><br>
-        <span class="plan-card__desc">${plan.desc}</span>
+        <span class="plan-card__name">${plan.name}</span>
+        ${isRecommended ? '<span class="tile__badge">選んだロケ地のおすすめ</span>' : ""}
+        <br><span class="plan-card__desc">${plan.desc || ""}</span>
       </span>
-      <span class="plan-card__price">${yen(plan.price)}</span>`;
+      <span class="plan-card__price">
+        <span style="text-decoration:line-through;color:var(--ink-soft);font-size:12px;display:block;">${yen(plan.price)}</span>
+        ${yen(discountedBase)}
+      </span>`;
     btn.addEventListener("click", () => {
       state.plan = key;
       renderPlans();
@@ -609,17 +648,18 @@ function renderPlans(){
 }
 
 function renderSummary(){
-  const { plan, group, surcharge, original, final } = calc();
+  const { plan, surcharge, original, final, rateApplied } = calc();
+  const tier = LOCATION_TIER[state.location];
   const box = document.getElementById("summaryBox");
   box.innerHTML = `
-    <dt>ロケ地</dt><dd>${state.location}（${group.label}）</dd>
+    <dt>ロケ地</dt><dd>${state.location}${tier ? "（" + TIER_LABELS[tier] + "扱い）" : ""}</dd>
     <dt>プラン</dt><dd>${plan.name}</dd>
     <dt>撮影日</dt><dd>${state.date}${state.isSurcharge ? "（土日祝）" : "（平日）"}</dd>
   `;
   document.getElementById("priceOriginal").textContent =
     yen(plan.price) + (surcharge ? ` ＋ 土日祝加算 ${yen(surcharge)}` : "");
   document.getElementById("discountLabel").textContent =
-    `${group.label} ${group.rate * 100}%OFF 適用後`;
+    `${(Math.round(rateApplied * 1000) / 10)}%OFF 適用後`;
   document.getElementById("priceFinal").innerHTML = `${yen(final)}<small>（税抜）</small>`;
 }
 
@@ -659,13 +699,13 @@ document.getElementById("resetBtn").addEventListener("click", () => {
 });
 
 document.getElementById("lineBtn").addEventListener("click", () => {
-  const { plan, group, final } = calc();
+  const { plan, final } = calc();
   const message =
     `見積もり相談です\n` +
     `ロケ地：${state.location}\n` +
     `プラン：${plan.name}\n` +
     `撮影日：${state.date}\n` +
-    `お見積り金額：${yen(final)}（税抜・${group.label}）`;
+    `お見積り金額：${yen(final)}（税抜）`;
 
   // 記録係（GAS）へ送信。失敗してもLINE遷移は必ず行う（結果を待たない）
   try {
