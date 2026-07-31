@@ -583,8 +583,8 @@ const TAX_RATE = 0.10;
 /* 1-6. 割引後の端数処理："round"=四捨五入 / "floor"=切り捨て / "ceil"=切り上げ */
 const ROUNDING = "round";
 
-/* 1-7. LINE公式アカウントのID（@は付けない） */
-const LINE_ID = "823ajfjj";
+/* 1-7. LINE公式アカウントのID（@を付けても付けなくてもどちらでも動きます） */
+const LINE_ID = "@823ajfjj";
 
 /* 1-8. GAS（記録係）の公開URL。「別紙：お引っ越し手順」でデプロイ後に書き換える */
 const GAS_URL = "https://script.google.com/macros/s/AKfycbz0pNmYDfOeZAlp97FNHLah4VsRsjcU-Xfiam5Pjcw6d_Mb2sRERIUaTlj9mUOtkFoc_w/exec";
@@ -854,7 +854,7 @@ document.getElementById("lineBtn").addEventListener("click", () => {
     }).catch(() => {});
   } catch (err) { /* 記録に失敗してもお客様には影響させない */ }
 
-  const lineUrl = `https://line.me/R/oaMessage/@${LINE_ID}/?${encodeURIComponent(message)}`;
+  const lineUrl = `https://line.me/R/oaMessage/@${LINE_ID.replace(/^@/, "")}/?${encodeURIComponent(message)}`;
   window.location.href = lineUrl;
 });
 
