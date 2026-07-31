@@ -245,9 +245,7 @@ body{
   vertical-align:middle;
 }
 .plan-card__desc{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:2px;}
-.plan-card__price{text-align:right;white-space:nowrap;}
-.plan-card__price-original{display:block;font-size:11px;color:var(--ink-soft);text-decoration:line-through;}
-.plan-card__price-final{font-size:16.5px;font-weight:900;color:var(--accent);}
+.plan-card__addon{text-align:right;white-space:nowrap;font-size:15.5px;font-weight:700;color:var(--accent);flex-shrink:0;}
 
 /* ---- 撮影日カード（平日／土日・祝日） ---- */
 .date-card{
@@ -589,7 +587,8 @@ const ROUNDING = "round";
 const LINE_ID = "@823ajfjj";
 
 /* 1-8. GAS（記録係）の公開URL。「別紙：お引っ越し手順」でデプロイ後に書き換える */
-const GAS_URL = "https://script.google.com/macros/s/AKfycbz0pNmYDfOeZAlp97FNHLah4VsRsjcU-Xfiam5Pjcw6d_Mb2sRERIUaTlj9mUOtkFoc_w/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbz0pNmYDfOeZAlp97FNHLah4VsRsjcU-Xfiam5Pjcw6d_Mb2sRERIUaTlj9mUOtkFoc_w/exec
+";
 
 
 
@@ -724,25 +723,28 @@ function renderPlans(){
     .filter(([, p]) => (p.group === "distance" && p.tier === tier) || p.group === "upgrade")
     .map(([key]) => key);
 
+  // 差額表示の基準＝選んだロケ地の基本プラン（距離ティア）の定価
+  const baseKey = visibleKeys.find(k => PLANS[k].group === "distance");
+  const basePrice = baseKey ? PLANS[baseKey].price : 0;
+
   visibleKeys.forEach(key => {
     const plan = PLANS[key];
-    const discountedBase = plan.finalPrice != null
-      ? plan.finalPrice
-      : round(plan.price * (1 - DEFAULT_DISCOUNT_RATE));
     const isRecommended = plan.group === "distance";
+    // 表示名：基本プランは距離ティア名を出さず「ロケーションプラン（1着）」に統一
+    // （結果画面・LINEメッセージ・記録シートには実際のプラン名 plan.name をそのまま使う）
+    const displayName = isRecommended ? "ロケーションプラン（1着）" : plan.name;
+    const displayDesc = isRecommended ? "衣装1着・基本プラン" : (plan.desc || "");
+    const addonText = isRecommended ? "基本料金のみ" : ("+" + yen(plan.price - basePrice));
 
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "plan-card" + (state.plan === key ? " is-selected" : "");
     btn.innerHTML = `
       <span>
-        <span class="plan-card__name">${plan.name}${isRecommended ? '<span class="plan-card__badge">おすすめ</span>' : ""}</span>
-        <span class="plan-card__desc">${plan.desc || ""}</span>
+        <span class="plan-card__name">${displayName}${isRecommended ? '<span class="plan-card__badge">おすすめ</span>' : ""}</span>
+        <span class="plan-card__desc">${displayDesc}</span>
       </span>
-      <span class="plan-card__price">
-        <span class="plan-card__price-original">${yen(plan.price)}</span>
-        <span class="plan-card__price-final">${yen(discountedBase)}</span>
-      </span>`;
+      <span class="plan-card__addon">${addonText}</span>`;
     btn.addEventListener("click", () => {
       state.plan = key;
       renderPlans();
