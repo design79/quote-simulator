@@ -185,7 +185,7 @@ body{
   background:var(--accent-soft);
 }
 .loc-row__badge{
-  font-size:11px;
+  font-size:15px;
   font-weight:700;
   color:var(--accent);
   white-space:nowrap;
@@ -695,7 +695,7 @@ function renderLocations(){
       const row = document.createElement("button");
       row.type = "button";
       row.className = "loc-row" + (state.location === name ? " is-selected" : "");
-      row.innerHTML = `<span>${name}</span><span class="loc-row__badge">${tier ? TIER_LABELS[tier] : "※距離ティア未設定"}</span>`;
+      row.innerHTML = `<span>${name}</span><span class="loc-row__badge">${tier ? yen(PLANS[tier].price) : "※距離ティア未設定"}</span>`;
       row.addEventListener("click", () => {
         state.location = name;
         state.plan = null; // ロケ地を変えたらプラン選択はやり直し
